@@ -534,6 +534,13 @@ a.mn-row:hover .t{color:#4A2112}
 @media (max-width:900px){.od-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.od-info{grid-template-columns:1fr}}
 @media (max-width:560px){.od-steps{grid-template-columns:1fr}.od-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.od-cat .tx{padding:12px 12px 14px}.od-cat b{font-size:17px}.od-cat span{display:none}.od-cta{padding:26px 22px}.od-hero .row a{flex:1 1 100%;justify-content:center}}
 @media (prefers-reduced-motion: reduce){.od-cat,.od-cat img{transition:none}}
+.srch-box{max-height:calc(100vh - 110px);max-height:calc(100dvh - 110px)}
+.lb img{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px)}
+.srch,.lb,.cart-panel,#srch-out,.cart-list{overscroll-behavior:contain}
+.cart-foot{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.wa-fab::after{pointer-events:none}
+.lb{touch-action:pan-y}
+@media (hover:none){.gal-item span{opacity:1;transform:none}.gal-item:hover img{transform:none}}
 .sp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
 .sp-card{background:#fff;border:1px solid #EBDDD2;border-radius:26px;padding:30px;display:flex;flex-direction:column;gap:14px}
 .sp-card.pop{border-color:#4A2112;box-shadow:0 22px 44px rgba(74,33,18,.12)}
@@ -1338,8 +1345,8 @@ a,button,input,select,textarea,label{touch-action:manipulation}
 <a href="#/about" style="color: #EBDDD2">About us</a>
 <a href="#/gallery" style="color: #EBDDD2">Gallery</a>
 <a href="#/contact" style="color: #EBDDD2">Contact</a>
-<a href="#" style="color: #EBDDD2">Privacy policy</a>
-<a href="#" style="color: #EBDDD2">Refund policy</a>
+<a href="#" data-soon="1" style="color: #EBDDD2">Privacy policy</a>
+<a href="#" data-soon="1" style="color: #EBDDD2">Refund policy</a>
 </div>
 <div style="flex: 0 1 200px; display: flex; flex-direction: column; gap: 12px; font-size: 15px">
 <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #E6C08F"><a href="#/contact" style="color: inherit">Follow us</a></div>
@@ -1423,6 +1430,32 @@ var io=new IntersectionObserver(function(entries){
 entries.forEach(function(en){if(en.isIntersecting){show(en.target);io.unobserve(en.target);}});
 },{threshold:0.12,rootMargin:'0px 0px -8% 0px'});
 secs.forEach(function(s){io.observe(s);});
+})();
+
+/* Reveal safety net for phones: tall sections, short screens, fast flicks and view changes can leave a section
+   un-revealed (and so invisible and unhoverable). Check positions on scroll, resize, view change and load. */
+(function(){
+var queue=[].slice.call(document.querySelectorAll('.rsec,.tsection'));
+var t=0;
+function check(){
+t=0;var vh=window.innerHeight||document.documentElement.clientHeight;
+queue=queue.filter(function(s){
+if(s.offsetParent===null&&getComputedStyle(s).position!=='fixed')return true;
+var r=s.getBoundingClientRect();
+if(r.height===0)return true;
+if(r.top<vh*0.94&&r.bottom>0){
+if(!s.classList.contains('in-view')){s.classList.add('in-view');setTimeout(function(){s.classList.add('settled');},1700);}
+return false;}
+return true;});
+}
+function later(){if(!t)t=setTimeout(check,40);}
+window.addEventListener('scroll',later,{passive:true});
+window.addEventListener('resize',later);
+window.addEventListener('orientationchange',later);
+window.addEventListener('hashchange',function(){setTimeout(check,60);setTimeout(check,400);});
+window.addEventListener('load',function(){check();setTimeout(check,600);});
+document.addEventListener('touchend',function(){setTimeout(check,120);},{passive:true});
+check();
 })();
 
 /* Sticky header: condense after scrolling */
@@ -1786,6 +1819,12 @@ var baseTitle=document.title;
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function pad(n){return(n<10?"0":"")+n;}
 
+/* links with no destination yet explain themselves instead of throwing the visitor back to the top of the home page */
+document.addEventListener("click",function(e){
+var a=e.target.closest&&e.target.closest('a[data-soon], a.soc[href="#"], .ct-soc a[href="#"]');
+if(!a)return;e.preventDefault();e.stopPropagation();
+showToast(a.hasAttribute("data-soon")?"This page is coming soon.":"Our social pages are coming soon.",a);
+},true);
 /* ---- coming-soon pop-up ---- */
 var toast=el("toast"),toastOk=el("toast-ok"),toastMsg=el("toast-msg"),toastTimer=0,toastFrom=null;
 function showToast(msg,from){
@@ -1928,7 +1967,7 @@ else if(!ideasFoot&&was&&ideasBack&&!el("surprise-view").hidden){ideasShow(true)
 },{threshold:0.05}).observe(ft);})();
 el("ideas-x").addEventListener("click",function(e){e.preventDefault();e.stopPropagation();ideasHide(true);});
 el("ideas").addEventListener("keydown",function(e){if(e.key==="Escape")ideasHide(true);});
-["pointerdown","focusin"].forEach(function(ev){el("sp-pkgs").addEventListener(ev,function(e){
+["click","focusin"].forEach(function(ev){el("sp-pkgs").addEventListener(ev,function(e){
 var c=e.target.closest&&e.target.closest(".sp-card");if(!c)return;
 var i=[].indexOf.call(c.parentNode.children,c);
 if(ideasSeen[i])return;ideasSeen[i]=1;
@@ -2081,6 +2120,10 @@ gal.addEventListener("click",function(e){
 var c=e.target.closest&&e.target.closest(".gal-chip");if(c){galFilter(c.getAttribute("data-g"));return;}
 var b=e.target.closest&&e.target.closest(".gal-item");if(b)lbOpen(b);
 });
+(function(){var x0=null,y0=0,lb=el("lb");
+lb.addEventListener("touchstart",function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;},{passive:true});
+lb.addEventListener("touchend",function(e){if(x0===null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;
+if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.4)lbShow(lbI+(dx<0?1:-1));},{passive:true});})();
 el("lb").addEventListener("click",function(e){var t=e.target;if(t.id==="lb"||t.closest("#lb-x"))lbClose();else if(t.closest("#lb-p"))lbShow(lbI-1);else if(t.closest("#lb-n"))lbShow(lbI+1);});
 document.addEventListener("keydown",function(e){if(el("lb").hidden)return;if(e.key==="Escape")lbClose();else if(e.key==="ArrowLeft")lbShow(lbI-1);else if(e.key==="ArrowRight")lbShow(lbI+1);});
 window.addEventListener("hashchange",function(){if(!el("lb").hidden)lbClose();if(parse().view==="gallery")galShow();});
